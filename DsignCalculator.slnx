@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="DsignCalculator/DsignCalculator.vcxproj" Id="cdd90ffb-05fb-415e-a1bc-0d73094bcf1a" />
+</Solution>
