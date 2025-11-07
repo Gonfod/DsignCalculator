@@ -46,6 +46,7 @@ inline double evaluateRPNVec(const std::vector<Token>& rpn, double xValue) {
                 else if (t.text == "log" || t.text == "ln") result = std::log(a);
                 else if (t.text == "exp") result = std::exp(a);
                 else if (t.text == "neg") result = -a;
+                else if (t.text == "abs") result = std::fabs(a);
                 else result = std::nan("1");
             }
             else if (t.arity == 2) {
@@ -101,6 +102,7 @@ inline double evaluateRPNXY(const std::vector<Token>& rpn, double xValue, double
                 else if (t.text == "log" || t.text == "ln") result = std::log(a);
                 else if (t.text == "exp") result = std::exp(a);
                 else if (t.text == "neg") result = -a;
+                else if (t.text == "abs") result = std::fabs(a);
                 else result = std::nan("1");
             }
             else if (t.arity == 2) {
@@ -157,6 +159,7 @@ inline double evaluateRPNEnv(const std::vector<Token>& rpn, const std::unordered
                 else if (t.text == "log" || t.text == "ln") result = std::log(a);
                 else if (t.text == "exp") result = std::exp(a);
                 else if (t.text == "neg") result = -a;
+                else if (t.text == "abs") result = std::fabs(a);
                 else result = std::nan("1");
             }
             else if (t.arity == 2) {

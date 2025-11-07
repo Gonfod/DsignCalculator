@@ -15,7 +15,7 @@ static const std::map<std::string, std::pair<int, bool>> operator_table = {
 
 static const std::map<std::string, int> function_table = {
     {"sin",1},{"cos",1},{"tan",1},{"asin",1},{"acos",1},{"atan",1},{"arcsin",1},{"arccos",1},{"arctan",1},{"sqrt",1},{"log",1},{"ln",1},
-    {"exp",1},{"pow",2},{"neg",1}
+    {"exp",1},{"pow",2},{"neg",1},{"abs",1}
 };
 
 static const std::map<std::string, double> constant_table = {
@@ -49,6 +49,18 @@ std::vector<Token> tokenize(const std::string& expr) {
     while (i < expr.size()) {
         char c = expr[i];
         if (isspace((unsigned char)c)) { ++i; continue; }
+        
+        if (c == '|') {
+            bool isOpening = tokens.empty() || tokens.back().type == TokenType::Operator || tokens.back().type == TokenType::LeftParen || tokens.back().type == TokenType::Comma;
+            if (isOpening) {
+                Token f(TokenType::Function, "abs"); f.arity = 1;
+                push_token(f);
+                push_token(Token(TokenType::LeftParen, "("));
+            } else {
+                tokens.push_back(Token(TokenType::RightParen, ")"));
+            }
+            ++i; continue;
+        }
 
         if (isdigit((unsigned char)c) || c == '.') {
             size_t start = i;

@@ -84,7 +84,8 @@ int main() {
     const float sidebarPadding = 10.f;
 
     std::vector<std::string> currentInput;
-    std::vector<std::vector<sf::Vertex>> lastGraph;
+    // store per-input list of polyline segments (each segment is a vector<sf::Vertex>)
+    std::vector<std::vector<std::vector<sf::Vertex>>> lastGraph;
     std::vector<std::string> lastExpr;
     std::vector<std::vector<Token>> lastRPN;
     std::vector<double> lastCenterX;
@@ -112,7 +113,7 @@ int main() {
         if ((int)currentInput.size() >= MAX_INPUTS) return;
         int i = (int)currentInput.size();
         currentInput.push_back(initText);
-        lastGraph.emplace_back();
+        lastGraph.emplace_back(); // add empty vector<vector<sf::Vertex>> for this input
         lastExpr.emplace_back();
         lastRPN.emplace_back();
         lastCenterX.push_back(0.0);
@@ -138,7 +139,7 @@ int main() {
     int active = 0;
     bool needRedraw = true;
 
-    double scale = 50.0;
+    double scale = 5.0;
     const double MIN_SCALE = 1.0;   // change as desired
     const double MAX_SCALE = 4000.0; // change as desired
     auto computeAdaptiveStep = [](double s) {
@@ -293,7 +294,7 @@ int main() {
                 if (mpos.x < graphW) {
                     if (event.mouseWheelScroll.delta > 0) scale *= 1.12;
                     else scale /= 1.12;
-                    if (scale < MIN_SCALE) scale = MIN_SCALE;
+                    
                     if (scale > MAX_SCALE) scale = MAX_SCALE;
                     float centerX = graphW / 2.0f + panX;
                     float centerY = window.getSize().y / 2.0f + panY;
@@ -467,12 +468,15 @@ int main() {
 
         // draw cached graphs (translated during pan)
         for (size_t i = 0; i < lastGraph.size(); ++i) {
-            if (!lastGraph[i].empty()) {
-                float dx = (float)(centerX - lastCenterX[i]);
-                float dy = (float)(centerY - lastCenterY[i]);
-                sf::RenderStates states;
-                states.transform.translate(dx, dy);
-                window.draw(&lastGraph[i][0], lastGraph[i].size(), sf::LineStrip, states);
+            if (lastGraph[i].empty()) continue;
+            float dx = (float)(centerX - lastCenterX[i]);
+            float dy = (float)(centerY - lastCenterY[i]);
+            sf::RenderStates states;
+            states.transform.translate(dx, dy);
+            // draw each segment separately so discontinuities are not connected
+            for (const auto &seg : lastGraph[i]) {
+                if (seg.size() < 2) continue;
+                window.draw(seg.data(), seg.size(), sf::LineStrip, states);
             }
         }
 
