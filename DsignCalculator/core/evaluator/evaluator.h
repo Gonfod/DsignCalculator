@@ -16,7 +16,6 @@ inline double evaluateRPNVec(const std::vector<Token>& rpn, double xValue) {
             st.push(t.number);
         }
         else if (t.type == TokenType::Variable) {
-            // only map variable named 'x' to xValue; other variables default to 0
             if (t.text == "x") st.push(xValue);
             else st.push(0.0);
         }
@@ -63,7 +62,6 @@ inline double evaluateRPNVec(const std::vector<Token>& rpn, double xValue) {
     return st.top();
 }
 
-// evaluate with two variables: variable named "x" and "y"
 inline double evaluateRPNXY(const std::vector<Token>& rpn, double xValue, double yValue) {
     std::stack<double> st;
 
@@ -119,7 +117,6 @@ inline double evaluateRPNXY(const std::vector<Token>& rpn, double xValue, double
     return st.top();
 }
 
-// evaluate using environment map: variable names -> values
 inline double evaluateRPNEnv(const std::vector<Token>& rpn, const std::unordered_map<std::string,double>& env) {
     std::stack<double> st;
     for (const Token& t : rpn) {

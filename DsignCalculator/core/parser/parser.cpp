@@ -48,7 +48,7 @@ std::vector<Token> shuntingYard(const std::vector<Token>& tokens) {
                 opstack.pop();
             }
             if (opstack.empty()) throw std::runtime_error("Mismatched parentheses");
-            opstack.pop(); // pop '('
+            opstack.pop();
             if (!opstack.empty() && opstack.top().type == TokenType::Function) {
                 output.push_back(opstack.top());
                 opstack.pop();

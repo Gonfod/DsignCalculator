@@ -27,12 +27,11 @@ static std::string normalizeExpression(const std::string &in) {
     replaceAll("\xC3\x97", "*");    // ×
     replaceAll("\xE2\x88\x92", "-"); // − (unicode minus)
 
-    // convert equations of form lhs = rhs into (lhs)-(rhs) so implicit contour F(x,y)=0 is plotted
     size_t eq = s.find('=');
     if (eq != std::string::npos) {
         std::string lhs = s.substr(0, eq);
         std::string rhs = s.substr(eq + 1);
-        // trim
+
         auto trim = [](std::string &str) {
             size_t a = 0; while (a < str.size() && isspace((unsigned char)str[a])) ++a;
             size_t b = str.size(); while (b > a && isspace((unsigned char)str[b-1])) --b;
@@ -45,7 +44,6 @@ static std::string normalizeExpression(const std::string &in) {
 }
 
 static void parseParamAssignment(const std::string &line, std::unordered_map<std::string,double> &env) {
-    // parse single "name=value" assignment and update env
     size_t eq = line.find('=');
     if (eq == std::string::npos) return;
     std::string name = line.substr(0, eq);
@@ -61,7 +59,6 @@ static void parseParamAssignment(const std::string &line, std::unordered_map<std
         double d = std::stod(val);
         env[name] = d;
     } catch (...) {
-        // ignore parse errors
     }
 }
 
@@ -79,12 +76,10 @@ int main() {
     const int MAX_INPUTS = 15;
     const int MAX_PARAMS = 15;
 
-    // Sidebar width (input area) on the right
-    const float sidebarWidth = 400.f; // space reserved on right
+    const float sidebarWidth = 400.f;
     const float sidebarPadding = 10.f;
 
     std::vector<std::string> currentInput;
-    // store per-input list of polyline segments (each segment is a vector<sf::Vertex>)
     std::vector<std::vector<std::vector<sf::Vertex>>> lastGraph;
     std::vector<std::string> lastExpr;
     std::vector<std::vector<Token>> lastRPN;
@@ -93,14 +88,12 @@ int main() {
     std::vector<sf::Color> colors;
     std::vector<sf::Text> inputTexts;
 
-    std::unordered_map<std::string,double> env; // parameter environment
-
-    // parameter input boxes (left column of sidebar) — act like function inputs
+    std::unordered_map<std::string,double> env; 
     std::vector<std::string> paramInputs;
     std::vector<sf::Text> paramInputTexts;
-    int activeParam = -1; // which param box is focused for typing
+    int activeParam = -1; 
 
-    // parameter editing helper: show parsed values in env when committed
+
 
     std::vector<sf::Color> palette = {
         sf::Color::Cyan, sf::Color::Magenta, sf::Color::Yellow, sf::Color::Red,
@@ -113,7 +106,7 @@ int main() {
         if ((int)currentInput.size() >= MAX_INPUTS) return;
         int i = (int)currentInput.size();
         currentInput.push_back(initText);
-        lastGraph.emplace_back(); // add empty vector<vector<sf::Vertex>> for this input
+        lastGraph.emplace_back();
         lastExpr.emplace_back();
         lastRPN.emplace_back();
         lastCenterX.push_back(0.0);
@@ -140,23 +133,23 @@ int main() {
     bool needRedraw = true;
 
     double scale = 5.0;
-    const double MIN_SCALE = 1.0;   // change as desired
-    const double MAX_SCALE = 4000.0; // change as desired
+    const double MIN_SCALE = 1.0;   
+    const double MAX_SCALE = 4000.0; 
     auto computeAdaptiveStep = [](double s) {
         return std::max(0.001, 1.0 / s * 0.5);
     };
 
-    // synchronous recompute function: compute all graphs immediately on the main thread
+
     auto computeAllGraphs = [&](double centerX, double centerY) {
         double step = computeAdaptiveStep(scale);
         int graphW = (int)(window.getSize().x - (int)sidebarWidth);
         int screenW = graphW;
         int screenH = window.getSize().y;
-        // compute world x range based on center pixel (consistent with drawing)
+
         double xMin = (0.0 - centerX) / scale;
         double xMax = ((double)screenW - centerX) / scale;
 
-        // ensure vectors are sized correctly
+
         size_t n = std::max(lastRPN.size(), currentInput.size());
         if (lastGraph.size() < n) lastGraph.resize(n);
         if (lastCenterX.size() < n) lastCenterX.resize(n, centerX);
@@ -175,7 +168,7 @@ int main() {
     double panX = 0.0, panY = 0.0;
     double panStartX = 0.0, panStartY = 0.0;
 
-    // when dragging we avoid recomputing; schedule a recompute on release or after idle
+
     bool pendingComputeAfterDrag = false;
     sf::Clock dragIdleClock;
     const sf::Time dragIdleThreshold = sf::milliseconds(200);
@@ -193,24 +186,22 @@ int main() {
                     sf::Vector2i mpos = sf::Mouse::getPosition(window);
                     int graphW = window.getSize().x - (int)sidebarWidth;
 
-                    // layout: left column in sidebar for params, right column for inputs
                     int sidebarLeft = window.getSize().x - (int)sidebarWidth;
-                    int paramColW = (int)(sidebarWidth * 0.35f); // smaller param column
+                    int paramColW = (int)(sidebarWidth * 0.35f); 
                     int paramX = sidebarLeft + 0 + (int)sidebarPadding;
                     int inputColX = sidebarLeft + paramColW + (int)sidebarPadding;
 
-                    // check clicks in param column
+
                     int paramY = (int)sidebarPadding;
                     int paramW = paramColW - (int)sidebarPadding*2;
                     int paramH = 24;
-                    // header click makes first param active
+
                     if (mpos.x >= graphW && mpos.x >= paramX && mpos.x <= paramX + paramW && mpos.y >= paramY && mpos.y <= paramY + paramH) {
                         if (!paramInputs.empty()) activeParam = 0;
                         needRedraw = true;
                         continue;
                     }
 
-                    // check param input boxes
                     int pvBaseY = paramY + paramH + 6;
                     for (size_t pi = 0; pi < paramInputs.size(); ++pi) {
                         int sy = pvBaseY + (int)pi * 26;
@@ -223,15 +214,13 @@ int main() {
                         }
                     }
                     if (activeParam != -1) {
-                        // if the click is in the input column, allow switching to graph inputs
+
                         if (mpos.x >= inputColX) {
-                            activeParam = -1; // clear param focus so input column handling can take place
+                            activeParam = -1; 
                         } else {
                             continue;
                         }
                     }
-
-                    // check Add button in input column (right column)
                     int addX = inputColX + 6;
                     int addY = (int)sidebarPadding;
                     int addW = 24; int addH = 24;
@@ -239,11 +228,10 @@ int main() {
                         addInputBox(); needRedraw = true; continue;
                     }
 
-                    // if click in input column, focus proper input
                     if (mpos.x >= graphW && mpos.x >= inputColX) {
-                        int localY = mpos.y - (int)sidebarPadding - 32; // leave space for param area
+                        int localY = mpos.y - (int)sidebarPadding - 32; 
                         if (localY >= 0) {
-                            int idx = localY / 26; // line spacing
+                            int idx = localY / 26; 
                             if (idx >= 0 && idx < (int)currentInput.size()) {
                                 active = idx;
                                 needRedraw = true;
@@ -251,7 +239,7 @@ int main() {
                         }
                     }
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
-                    // start panning only when right-click in graph area
+
                     sf::Vector2i mpos = sf::Mouse::getPosition(window);
                     int graphW = window.getSize().x - (int)sidebarWidth;
                     if (mpos.x < graphW) {
@@ -288,7 +276,7 @@ int main() {
             }
 
             if (event.type == sf::Event::MouseWheelScrolled) {
-                // Update scale immediately and recompute; only if mouse over graph area
+
                 sf::Vector2i mpos = sf::Mouse::getPosition(window);
                 int graphW = window.getSize().x - (int)sidebarWidth;
                 if (mpos.x < graphW) {
@@ -316,18 +304,18 @@ int main() {
 
             if (event.type == sf::Event::TextEntered) {
                 uint32_t code = event.text.unicode;
-                // parameter input boxes handling
+
                 if (activeParam != -1) {
                     if (code == 8) { if (!paramInputs[activeParam].empty()) paramInputs[activeParam].pop_back(); needRedraw = true; }
                     else if (code == 13) {
-                        // commit param line -> parse name=value
+                    
                         parseParamAssignment(paramInputs[activeParam], env);
-                        // optionally add next param box if this was the last
+
                         bool allFilled = true;
                         for (auto &s : paramInputs) if (s.empty()) { allFilled = false; break; }
                         if (allFilled && (int)paramInputs.size() < MAX_PARAMS) addParamBox();
                         activeParam = -1;
-                        // recompute graphs
+
                         int graphW = window.getSize().x - (int)sidebarWidth;
                         float centerX = graphW / 2.0f + (float)panX;
                         float centerY = (float)window.getSize().y / 2.0f + (float)panY;
@@ -387,7 +375,6 @@ int main() {
             }
         }
 
-        // if dragging stopped and pending recompute, do it after idle
         if (pendingComputeAfterDrag && !dragging && dragIdleClock.getElapsedTime() >= dragIdleThreshold) {
             int graphW = window.getSize().x - (int)sidebarWidth;
             int graphH = window.getSize().y;
@@ -419,7 +406,6 @@ int main() {
         double yMaxWorld = centerY / scale;
         double yMinWorld = (centerY - graphH) / scale;
 
-        // adaptive tick spacing
         double pixelsPerUnit = scale;
         double minPixelSpacing = 60.0;
         double rawSpacing = minPixelSpacing / pixelsPerUnit;
@@ -466,29 +452,28 @@ int main() {
             }
         }
 
-        // draw cached graphs (translated during pan)
+
         for (size_t i = 0; i < lastGraph.size(); ++i) {
             if (lastGraph[i].empty()) continue;
             float dx = (float)(centerX - lastCenterX[i]);
             float dy = (float)(centerY - lastCenterY[i]);
             sf::RenderStates states;
             states.transform.translate(dx, dy);
-            // draw each segment separately so discontinuities are not connected
+            
             for (const auto &seg : lastGraph[i]) {
                 if (seg.size() < 2) continue;
                 window.draw(seg.data(), seg.size(), sf::LineStrip, states);
             }
         }
 
-        // draw sidebar background
         sf::RectangleShape sideBg(sf::Vector2f(sidebarWidth, (float)window.getSize().y));
         sideBg.setPosition((float)window.getSize().x - sidebarWidth, 0.f);
         sideBg.setFillColor(sf::Color(22,22,22));
         window.draw(sideBg);
 
-        // draw param input box at top of sidebar (left column)
+        
         int sidebarLeft = window.getSize().x - (int)sidebarWidth;
-        int paramColW = (int)(sidebarWidth * 0.35f); // smaller param column
+        int paramColW = (int)(sidebarWidth * 0.35f); 
         int paramX = sidebarLeft + 0 + (int)sidebarPadding;
         int inputColX = sidebarLeft + paramColW + (int)sidebarPadding;
         {
@@ -504,26 +489,26 @@ int main() {
             t.setPosition(bx+6.f, by+3.f); window.draw(t);
         }
 
-        // draw parameter text boxes (left column)
+
         int paramW = paramColW - (int)sidebarPadding*2;
         int pvBaseY = sidebarPadding + 24 + 6;
         for (size_t pi = 0; pi < paramInputs.size(); ++pi) {
             std::string name = "param" + std::to_string(pi+1);
             double val = env[name];
             float y = (float)(pvBaseY + pi * 28);
-            // name
+
             sf::Text tn; tn.setFont(font); tn.setCharacterSize(14); tn.setFillColor(sf::Color::White);
             tn.setString(name + ":"); tn.setPosition((float)paramX + 6.f, y - 2.f); window.draw(tn);
-            // value box
+
             float valX = (float)paramX + 70.f;
             float valW = (float)(paramW - 80);
             sf::RectangleShape vbox(sf::Vector2f(valW, 20.f)); vbox.setPosition(valX, y); vbox.setFillColor(activeParam == (int)pi ? sf::Color(60,60,60) : sf::Color(40,40,40)); vbox.setOutlineThickness(1.f); vbox.setOutlineColor(sf::Color(80,80,80)); window.draw(vbox);
-            // value text
+
             std::string s = paramInputs[pi];
             sf::Text tv; tv.setFont(font); tv.setCharacterSize(12); tv.setFillColor(sf::Color::White); tv.setString(s); tv.setPosition(valX + 4.f, y + 2.f); window.draw(tv);
         }
 
-        // draw Add (+) button in input column
+
         {
             float bx = (float)inputColX + 6.f;
             float by = (float)sidebarPadding;
@@ -531,9 +516,8 @@ int main() {
             sf::Text plus; plus.setFont(font); plus.setCharacterSize(18); plus.setFillColor(sf::Color::White); plus.setString("+"); plus.setPosition(bx+6.f, by); window.draw(plus);
         }
 
-        // draw inputTexts in input column (give more horizontal space)
         for (size_t i = 0; i < inputTexts.size(); ++i) {
-            float x = (float)inputColX + 6.f; // more left space
+            float x = (float)inputColX + 6.f; 
             float y = 10.f + 32.f + i * 26.f;
             inputTexts[i].setPosition(x, y);
             std::string label = std::to_string(i+1) + ": f(x) = " + currentInput[i];
@@ -547,7 +531,6 @@ int main() {
             if (!lastExpr[i].empty()) {
                 sf::Text t(lastExpr[i], font, 14);
                 t.setFillColor(colors[i % colors.size()]);
-                // place colored legend on the left side of the graph area
                 float legendX = 10.f;
                 float legendY = 10.f + i * 18.f;
                 t.setPosition(legendX, legendY);

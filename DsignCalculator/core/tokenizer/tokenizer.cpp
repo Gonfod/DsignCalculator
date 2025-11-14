@@ -29,8 +29,6 @@ std::vector<Token> tokenize(const std::string& expr) {
     size_t i = 0;
 
     auto push_token = [&](const Token& t) {
-        // insert implicit multiplication if previous token is Number, Variable, or RightParen
-        // and current token is Variable, Function, Number, or LeftParen
         if (!tokens.empty()) {
             TokenType prev = tokens.back().type;
             TokenType cur = t.type;

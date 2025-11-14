@@ -8,16 +8,10 @@
 #include <atomic>
 #include <algorithm>
 
-// This grapher implementation returns **multiple curve segments** for implicit
-// plots and for explicit plots splits the line when jumps are large. The
-// public API below exposes helpers to compute segments and to draw them.
-
 static bool rpnUsesY(const std::vector<Token>& rpn) {
     for (auto& t : rpn) if (t.type == TokenType::Variable && t.text == "y") return true;
     return false;
 }
-
-// Sample y = f(x) into world-space (x,y) pairs
 std::vector<sf::Vector2f> computeWorldSamplesFromRPN(const std::vector<Token>& rpn,
     double xMin, double xMax, double step,
     const std::unordered_map<std::string, double>* env)
@@ -46,13 +40,9 @@ std::vector<sf::Vector2f> computeWorldSamplesFromRPN(const std::vector<Token>& r
     }
     return samples;
 }
-
-// Linear interpolation helper (world coords)
 static sf::Vector2f lerpPoint(double x1, double y1, double x2, double y2, double t) {
     return sf::Vector2f(static_cast<float>(x1 + (x2 - x1) * t), static_cast<float>(y1 + (y2 - y1) * t));
 }
-
-// Marching squares returning isolated line segments in world coordinates
 static std::vector<std::vector<sf::Vector2f>> marchingSquares(const std::vector<std::vector<double>>& grid,
     double x0, double y0, double dx, double dy, double iso = 0.0)
 {
@@ -67,10 +57,10 @@ static std::vector<std::vector<sf::Vector2f>> marchingSquares(const std::vector<
     for (int j = 0; j < ny - 1; ++j) {
         for (int i = 0; i < nx - 1; ++i) {
             double v[4];
-            v[0] = grid[j][i];     // top-left
-            v[1] = grid[j][i + 1];   // top-right
-            v[2] = grid[j + 1][i + 1]; // bottom-right
-            v[3] = grid[j + 1][i];   // bottom-left
+            v[0] = grid[j][i]; 
+            v[1] = grid[j][i + 1];  
+            v[2] = grid[j + 1][i + 1]; 
+            v[3] = grid[j + 1][i];  
             int mask = 0;
             if (v[0] >= iso) mask |= 1;
             if (v[1] >= iso) mask |= 2;
@@ -136,8 +126,6 @@ static std::vector<std::vector<sf::Vector2f>> marchingSquares(const std::vector<
     }
     return segments;
 }
-
-// Public API: compute graph segments. Each returned vector<sf::Vertex> is one polyline segment
 std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
     const std::vector<Token>& rpn,
     sf::Color color,
@@ -150,8 +138,6 @@ std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
 {
     std::vector<std::vector<sf::Vertex>> segmentsOut;
     if (rpn.empty()) return segmentsOut;
-
-    // Implicit functions (use marching squares) -> returns multiple small segments
     if (rpnUsesY(rpn) && screenWidth > 0 && screenHeight > 0) {
         double worldXMin = (0.0 - centerX) / scale;
         double worldXMax = ((double)screenWidth - centerX) / scale;
@@ -196,8 +182,6 @@ std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
 
         return segmentsOut;
     }
-
-    // Explicit y = f(x) plotting
     auto samples = computeWorldSamplesFromRPN(rpn, xMin, xMax, step, env);
     if (samples.empty()) return segmentsOut;
 
@@ -213,7 +197,6 @@ std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
         if (!std::isfinite(y)) { if (curr.size() >= 2) segmentsOut.push_back(std::move(curr)); curr.clear(); havePrev = false; continue; }
 
         if (havePrev && std::abs(y - prevY) > MAX_JUMP) {
-            // big jump -> finish current segment and start new
             if (curr.size() >= 2) segmentsOut.push_back(std::move(curr));
             curr.clear(); havePrev = false;
         }
@@ -227,8 +210,6 @@ std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
 
     return segmentsOut;
 }
-
-// Convenience wrapper that accepts an expression string and returns segments
 std::vector<std::vector<sf::Vertex>> computeGraph(const std::string& expr,
     sf::Color color, double scale,
     double xMin, double xMax, double step,
@@ -240,9 +221,6 @@ std::vector<std::vector<sf::Vertex>> computeGraph(const std::string& expr,
     std::atomic<bool> cancelFlag(false);
     return computeGraphFromRPN(rpn, color, scale, xMin, xMax, step, centerX, centerY, screenWidth, screenHeight, env, &cancelFlag);
 }
-
-// Draw helper: draws a set of polyline segments to the window. Each segment is drawn
-// separately (so disconnected branches are not connected).
 void drawSegments(sf::RenderWindow& window, const std::vector<std::vector<sf::Vertex>>& segments) {
     for (const auto& seg : segments) {
         if (seg.size() < 2) continue;
@@ -250,5 +228,3 @@ void drawSegments(sf::RenderWindow& window, const std::vector<std::vector<sf::Ve
         window.draw(seg.data(), seg.size(), sf::LineStrip);
     }
 }
-
-// End of grapher.cpp
