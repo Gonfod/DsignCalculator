@@ -224,7 +224,6 @@ std::vector<std::vector<sf::Vertex>> computeGraph(const std::string& expr,
 void drawSegments(sf::RenderWindow& window, const std::vector<std::vector<sf::Vertex>>& segments) {
     for (const auto& seg : segments) {
         if (seg.size() < 2) continue;
-        // draw segment directly
         window.draw(seg.data(), seg.size(), sf::LineStrip);
     }
 }
