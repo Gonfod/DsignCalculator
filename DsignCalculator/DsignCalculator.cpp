@@ -1,4 +1,5 @@
 ﻿#include <SFML/Graphics.hpp>
+#include <SFML/Window/Clipboard.hpp>
 #include "../core/grapher/grapher.h"
 #include "../core/parser/core_parser.h"
 #include <iostream>
@@ -40,6 +41,33 @@ static std::string normalizeExpression(const std::string &in) {
         trim(lhs); trim(rhs);
         s = std::string("(") + lhs + ")-(" + rhs + ")";
     }
+    return s;
+}
+
+
+static std::string normalizePaste(const std::string &in) {
+    std::string s = in;
+
+    s.erase(std::remove_if(s.begin(), s.end(), [](char c){ return c == '\r' || c == '\n'; }), s.end());
+
+    auto replaceAll = [&](const std::string &a, const std::string &b) {
+        size_t p = 0;
+        while ((p = s.find(a, p)) != std::string::npos) {
+            s.replace(p, a.size(), b);
+            p += b.size();
+        }
+    };
+    replaceAll("\xC2\xB9", "^1");
+    replaceAll("\xC2\xB2", "^2");
+    replaceAll("\xC2\xB3", "^3");
+    replaceAll("\xE2\x81\xB4", "^4");
+    replaceAll("\xE2\x81\xB5", "^5");
+    replaceAll("\xE2\x81\xB6", "^6");
+    replaceAll("\xE2\x81\xB7", "^7");
+    replaceAll("\xE2\x81\xB8", "^8");
+    replaceAll("\xE2\x81\xB9", "^9");
+    replaceAll("\xC2\xB7", "*");
+    replaceAll("\xE2\x88\x92", "-");
     return s;
 }
 
@@ -173,6 +201,25 @@ int main() {
     sf::Clock dragIdleClock;
     const sf::Time dragIdleThreshold = sf::milliseconds(200);
 
+
+    {
+        int graphW = window.getSize().x - (int)sidebarWidth;
+        int graphH = window.getSize().y;
+
+        double desiredHalfX = 5.0; 
+        double desiredHalfY = 5.0; 
+        double scaleX = (double)graphW / (2.0 * desiredHalfX);
+        double scaleY = (double)graphH / (2.0 * desiredHalfY);
+        scale = std::min(scaleX, scaleY);
+        if (scale < MIN_SCALE) scale = MIN_SCALE;
+        if (scale > MAX_SCALE) scale = MAX_SCALE;
+
+        float centerX = graphW / 2.0f + (float)panX;
+        float centerY = graphH / 2.0f + (float)panY;
+        computeAllGraphs(centerX, centerY);
+        needRedraw = true;
+    }
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -292,6 +339,18 @@ int main() {
             }
 
             if (event.type == sf::Event::KeyPressed) {
+                if (event.key.control && event.key.code == sf::Keyboard::V) {
+                    sf::String clipSf = sf::Clipboard::getString();
+                    auto utf8 = clipSf.toUtf8();
+                    std::string clip(utf8.begin(), utf8.end());
+                    std::string norm = normalizePaste(clip);
+                    if (activeParam != -1) {
+                        paramInputs[activeParam] += norm;
+                    } else {
+                        if (active >= 0 && active < (int)currentInput.size()) currentInput[active] += norm;
+                    }
+                    needRedraw = true;
+                }
                 if (event.key.code == sf::Keyboard::Up) {
                     active = (active - 1 + (int)currentInput.size()) % (int)currentInput.size();
                     needRedraw = true;

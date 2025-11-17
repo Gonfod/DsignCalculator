@@ -2,6 +2,7 @@
 #include <cctype>
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
 
 static bool isOperatorChar(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
@@ -47,7 +48,7 @@ std::vector<Token> tokenize(const std::string& expr) {
     while (i < expr.size()) {
         char c = expr[i];
         if (isspace((unsigned char)c)) { ++i; continue; }
-        
+
         if (c == '|') {
             bool isOpening = tokens.empty() || tokens.back().type == TokenType::Operator || tokens.back().type == TokenType::LeftParen || tokens.back().type == TokenType::Comma;
             if (isOpening) {
@@ -82,18 +83,22 @@ std::vector<Token> tokenize(const std::string& expr) {
             while (i < expr.size() && isalpha((unsigned char)expr[i])) ++i;
             std::string name = expr.substr(start, i - start);
 
-            if (function_table.count(name)) {
-                Token t(TokenType::Function, name);
-                t.arity = function_table.at(name);
+
+            std::string lname = name;
+            std::transform(lname.begin(), lname.end(), lname.begin(), [](unsigned char ch){ return std::tolower(ch); });
+
+            if (function_table.count(lname)) {
+                Token t(TokenType::Function, lname);
+                t.arity = function_table.at(lname);
                 push_token(t);
             }
-            else if (constant_table.count(name)) {
-                Token t(TokenType::Number, name);
-                t.number = constant_table.at(name);
+            else if (constant_table.count(lname)) {
+                Token t(TokenType::Number, lname);
+                t.number = constant_table.at(lname);
                 push_token(t);
             }
             else {
-                Token t(TokenType::Variable, name);
+                Token t(TokenType::Variable, lname);
                 push_token(t);
             }
             continue;
