@@ -207,7 +207,6 @@ std::vector<std::vector<sf::Vertex>> computeGraphFromRPN(
         prevY = y; havePrev = true;
     }
     if (curr.size() >= 2) segmentsOut.push_back(std::move(curr));
-
     return segmentsOut;
 }
 std::vector<std::vector<sf::Vertex>> computeGraph(const std::string& expr,
