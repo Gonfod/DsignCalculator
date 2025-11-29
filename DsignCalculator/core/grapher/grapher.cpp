@@ -224,5 +224,6 @@ void drawSegments(sf::RenderWindow& window, const std::vector<std::vector<sf::Ve
     for (const auto& seg : segments) {
         if (seg.size() < 2) continue;
         window.draw(seg.data(), seg.size(), sf::LineStrip);
+        
     }
 }
